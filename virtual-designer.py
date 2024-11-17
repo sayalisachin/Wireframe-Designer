@@ -187,6 +187,7 @@ if mode == "Upload Image":
             st.code(css_code, language="css")
 
 # --- Generate AI Wireframe Mode ---
+# --- Generate AI Wireframe Mode ---
 elif mode == "Generate AI Wireframe":
     st.markdown("### AI Wireframe Generation")
     
@@ -199,24 +200,37 @@ elif mode == "Generate AI Wireframe":
     if st.button(translate_text("Generate Wireframe", lang)):
         with st.spinner(translate_text("Generating wireframe...", lang)):
             try:
-                # Modify the prompt based on the selected fidelity
-                fidelity_description = "simple and low-fidelity wireframe with basic shapes" if fidelity_option == "Low Fidelity" else "detailed and high-fidelity wireframe with realistic elements and styles"
+                # Refined prompt based on selected fidelity
+                if fidelity_option == "Low Fidelity":
+                    fidelity_description = "a clean, low-fidelity wireframe with basic layout using simple shapes like rectangles and lines. Ensure clear borders, grid layouts, and minimal design details for early-stage design."
+                else:
+                    fidelity_description = "a detailed, high-fidelity wireframe with clear structure, realistic elements, proper typography, and spacing. The design should have well-defined borders, consistent visual hierarchy, and realistic proportions."
 
-                full_prompt = f"Generate a {fidelity_description} based on the following description: '{user_prompt}'"
-                response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
-                    messages=[ 
-                        {"role": "system", "content": "You are an expert wireframe designer."},
-                        {"role": "user", "content": full_prompt},
-                    ],
-                    temperature=0.7,
-                    max_tokens=500,
+                # Combine the fidelity description with the user input
+                full_prompt = f"Create {fidelity_description} based on the following description: '{user_prompt}'. The wireframe should have clear spacing, well-aligned elements, and consistent margins. Ensure it is structured, with a defined visual hierarchy."
+
+                # Call DALL·E API to generate multiple wireframe images (5 variations)
+                response = openai.Image.create(
+                    prompt=full_prompt,
+                    n=5,  # Generate 5 variations for better clarity
+                    size="1024x1024"  # High resolution
                 )
-                wireframe_code = response["choices"][0]["message"]["content"].strip()
-                st.success(translate_text("Generated Wireframe Code:", lang))
-                st.code(wireframe_code)
+                
+                # Get the URLs of the generated images
+                image_urls = [image['url'] for image in response['data']]
+
+                # Display all generated images
+                st.markdown(translate_text("Generated Wireframes", lang))
+                for idx, image_url in enumerate(image_urls):
+                    st.image(image_url, caption=f"Wireframe {idx + 1}", use_column_width=True)
+
+                # Allow the user to select the best version
+                selected_image_idx = st.selectbox(translate_text("Select the best wireframe version:", lang), range(5))
+                st.image(image_urls[selected_image_idx], caption=f"Selected Wireframe {selected_image_idx + 1}", use_column_width=True)
+
             except Exception as e:
                 st.error(f"Error generating wireframe: {str(e)}")
+
 # --- GitHub Integration (Save Design to GitHub) ---
 st.markdown("### Save Design to GitHub")
 github_token = st.text_input(translate_text("Enter GitHub Token (Personal Access Token):", lang))
